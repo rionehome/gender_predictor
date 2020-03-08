@@ -1,25 +1,41 @@
 import os
 import glob
 
+import rclpy
+from rclpy.node import Node
 import numpy as np
-from PIL import Image
 import chainer.links
 from chainer.datasets import tuple_dataset
 from chainer import serializers
 import matplotlib.pyplot as plt
+from rione_msgs.msg import PredictResult
+from sensor_msgs.msg import Image
 
-import model
+import alex
 
-MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../face_predictor/models/")
+MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../gender_predictor/models/")
 
 
-class GenderPredict:
-    def __init__(self, persons_path):
+class GenderPredict(Node):
+    def __init__(self, node_name: str):
+        super().__init__(node_name)
         self.model_path = "{}/etc/AlexlikeMSGD.model".format(MODEL_PATH)
-        self.persons_path = persons_path
-        self.female_path = self.persons_path + "females/"
-        self.male_path = self.persons_path + "males/"
-        self.chainer_model = chainer.links.Classifier(model.Alex())
+        self.alex = chainer.links.Classifier(alex.Alex())
+        self.create_subscription(Image, "/gender_predictor/color/image", self.callback_image, 1)
+        self.pub_result = self.create_publisher(PredictResult, "/face_predictor/result", 10)
+
+    def callback_image(self, msg: Image):
+        """
+        画像のsubscribe
+        :param msg:
+        :return:
+        """
+        if not len(msg.data) == 96 ** 2 * 3:
+            print("画像サイズは96×96×3である必要があります", flush=True)
+            return
+        image_array = np.asarray(msg.data).reshape((96, 96, 3))
+        y = self.alex.predictor(image_array)
+        print(y)
 
     def generate_dataset(self):
         """
@@ -52,15 +68,15 @@ class GenderPredict:
         :return: (male,female)
         """
         class_names = ['女', '男']
-        serializers.load_npz(self.model_path, self.chainer_model)
+        serializers.load_npz(self.model_path, self.alex)
         dataset = self.generate_dataset()
 
         male_count = 0
         female_count = 0
         print(dataset)
         for x, t in dataset:
-            self.chainer_model.to_cpu()
-            y = self.chainer_model.predictor(x[None, ...]).data.argmax(axis=1)[0]
+            self.alex.to_cpu()
+            y = self.alex.predictor(x[None, ...]).data.argmax(axis=1)[0]
             print("Prediction:", class_names[y])
             if y == 0:
                 female_image_name = "female_%02d.png" % female_count
@@ -72,3 +88,13 @@ class GenderPredict:
                 male_count += 1
 
         return male_count, female_count
+
+
+def main():
+    rclpy.init()
+    node = GenderPredict("GenderPredictor")
+    rclpy.spin(node)
+
+
+if __name__ == '__main__':
+    main()
