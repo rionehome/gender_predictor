@@ -28,7 +28,7 @@ def create_model():
     #    layer.trainable = False
     flatten = layers.Flatten()(vgg16_model(input_data))
     dense1 = layers.Dense(256, activation='relu')(flatten)
-    dense1 = layers.Dropout(0.5)(dense1)
+    dense1 = layers.Dropout(0.3)(dense1)
     predict = layers.Dense(2, activation='softmax')(dense1)
     model = models.Model(inputs=input_data, outputs=predict)
 
@@ -66,10 +66,10 @@ def train():
     model.summary()
 
     callbacks_list = [
-        keras.callbacks.EarlyStopping(
-            monitor='val_loss',
-            patience=10
-        ),
+        # keras.callbacks.EarlyStopping(
+        #    monitor='val_loss',
+        #    patience=10
+        # ),
         keras.callbacks.ModelCheckpoint(
             filepath=os.path.join(LOG_PATH, "model.h5"),
             monitor="val_acc",
