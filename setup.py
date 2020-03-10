@@ -13,7 +13,7 @@ setup(
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('lib/gender_predictor', ['gender_predictor/alex.py']),
-        ('lib/gender_predictor/models', ['models/AlexlikeMSGD.model'])
+        ('lib/gender_predictor/models', ['models/gender_vgg16.model'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,
