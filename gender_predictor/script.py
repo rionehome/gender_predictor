@@ -37,7 +37,7 @@ class GenderPredict(Node):
         with chainer.using_config('train', False):
             y = self.alex.predictor(image_array).data.argmax(axis=1)[0]
         labels = ["female", "male"]
-        print(labels[y])
+        print(labels[y], flush=True)
         self.pub_result.publish(PredictResult(class_name=String(data=labels[y])))
 
 
