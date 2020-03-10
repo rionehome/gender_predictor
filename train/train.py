@@ -2,16 +2,15 @@ from datetime import datetime
 import os
 
 import keras
-import matplotlib.pyplot as plt
-
 from keras import models
 from keras import layers
 from keras import optimizers
 from keras.preprocessing.image import ImageDataGenerator
+from lib.utils import save_history, show_image_tile
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-DATASET_PATH = "./data/kaggle_dogs_vs_cats/"
+DATASET_PATH = "./data/"
 LOG_PATH = os.path.join("log/", datetime.now().strftime('%Y%m%d_%H%M%S'))
 
 IMAGE_SIZE = 96
@@ -22,16 +21,17 @@ NUM_EPOCH = 100
 def create_model():
     input_data = layers.Input(shape=(IMAGE_SIZE, IMAGE_SIZE, 3))
     conv1 = layers.Conv2D(48, kernel_size=(3, 3), activation='relu')(input_data)
-    conv1 = layers.BatchNormalization(48)(conv1)
+    conv1 = layers.BatchNormalization()(conv1)
     conv1 = layers.MaxPool2D((2, 2))(conv1)
     conv2 = layers.Conv2D(128, kernel_size=(3, 3), activation='relu')(conv1)
-    conv2 = layers.BatchNormalization(128)(conv2)
+    conv2 = layers.BatchNormalization()(conv2)
     conv2 = layers.MaxPool2D((2, 2))(conv2)
     conv3 = layers.Conv2D(192, kernel_size=(3, 3), activation='relu')(conv2)
     conv4 = layers.Conv2D(192, kernel_size=(3, 3), activation='relu')(conv3)
     conv5 = layers.Conv2D(128, kernel_size=(3, 3), activation='relu')(conv4)
     conv5 = layers.MaxPool2D((2, 2))(conv5)
-    dense1 = layers.Dense(1024)(conv5)
+    flatten = layers.Flatten()(conv5)
+    dense1 = layers.Dense(1024)(flatten)
     dense2 = layers.Dense(1024)(dense1)
     predict = layers.Dense(2, activation='softmax')(dense2)
     model = models.Model(inputs=input_data, outputs=predict)
@@ -61,6 +61,7 @@ def train():
     )
 
     model = create_model()
+    model.summary()
 
     callbacks_list = [
         keras.callbacks.EarlyStopping(
@@ -83,7 +84,17 @@ def train():
         steps_per_epoch=100,
         epochs=NUM_EPOCH,
         validation_steps=0.1,
+        callbacks=callbacks_list
     )
+
+    save_history(history, LOG_PATH)
+
+    print(model.evaluate_generator(test_data_iterator))
+
+    test_images = test_data_iterator.next()[0]
+    for image in test_images:
+        print(model.predict(image))
+    show_image_tile([test_images])
 
 
 if __name__ == '__main__':
