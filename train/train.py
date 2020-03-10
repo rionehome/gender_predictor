@@ -23,8 +23,9 @@ NUM_EPOCH = 100
 def create_model():
     input_data = layers.Input(shape=(IMAGE_SIZE, IMAGE_SIZE, 3))
     vgg16_model = VGG16(include_top=False)
-    for layer in vgg16_model.layers[:15]:
-        layer.trainable = False
+    vgg16_model.trainable = True
+    # for layer in vgg16_model.layers[:15]:
+    #    layer.trainable = False
     flatten = layers.Flatten()(vgg16_model(input_data))
     dense1 = layers.Dense(256, activation='relu')(flatten)
     dense1 = layers.Dropout(0.5)(dense1)
@@ -66,12 +67,12 @@ def train():
 
     callbacks_list = [
         keras.callbacks.EarlyStopping(
-            monitor='val_acc',
+            monitor='val_loss',
             patience=10
         ),
         keras.callbacks.ModelCheckpoint(
             filepath=os.path.join(LOG_PATH, "model.h5"),
-            monitor="val_loss",
+            monitor="val_acc",
             save_best_only=True
         ),
         keras.callbacks.TensorBoard(
