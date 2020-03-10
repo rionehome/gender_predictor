@@ -2,10 +2,12 @@ from datetime import datetime
 import os
 
 import keras
+from keras.applications.vgg16 import VGG16
 from keras import models
 from keras import layers
 from keras import optimizers
 from keras.preprocessing.image import ImageDataGenerator
+
 from lib.utils import save_history, show_image_tile
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -20,23 +22,13 @@ NUM_EPOCH = 100
 
 def create_model():
     input_data = layers.Input(shape=(IMAGE_SIZE, IMAGE_SIZE, 3))
-    conv1 = layers.Conv2D(48, kernel_size=(3, 3), activation='relu')(input_data)
-    conv1 = layers.BatchNormalization()(conv1)
-    conv1 = layers.MaxPool2D((2, 2))(conv1)
-    conv2 = layers.Conv2D(128, kernel_size=(3, 3), activation='relu')(conv1)
-    conv2 = layers.BatchNormalization()(conv2)
-    conv2 = layers.MaxPool2D((2, 2))(conv2)
-    conv3 = layers.Conv2D(192, kernel_size=(3, 3), activation='relu')(conv2)
-    conv3 = layers.BatchNormalization()(conv3)
-    conv4 = layers.Conv2D(192, kernel_size=(3, 3), activation='relu')(conv3)
-    conv4 = layers.BatchNormalization()(conv4)
-    conv5 = layers.Conv2D(128, kernel_size=(3, 3), activation='relu')(conv4)
-    conv5 = layers.BatchNormalization()(conv5)
-    conv5 = layers.MaxPool2D((2, 2))(conv5)
-    flatten = layers.Flatten()(conv5)
-    dense1 = layers.Dense(1024)(flatten)
-    dense2 = layers.Dense(1024)(dense1)
-    predict = layers.Dense(2, activation='softmax')(dense2)
+    vgg16_model = VGG16(include_top=False)
+    for layer in vgg16_model.layers[:15]:
+        layer.trainable = False
+    flatten = layers.Flatten()(vgg16_model(input_data))
+    dense1 = layers.Dense(256, activation='relu')(flatten)
+    dense1 = layers.Dropout(0.5)(dense1)
+    predict = layers.Dense(2, activation='softmax')(dense1)
     model = models.Model(inputs=input_data, outputs=predict)
 
     model.compile(
