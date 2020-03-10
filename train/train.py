@@ -14,7 +14,7 @@ DATASET_PATH = "./data/"
 LOG_PATH = os.path.join("log/", datetime.now().strftime('%Y%m%d_%H%M%S'))
 
 IMAGE_SIZE = 96
-BATCH_SIZE = 32
+BATCH_SIZE = 25
 NUM_EPOCH = 100
 
 
@@ -33,11 +33,11 @@ def create_model():
     flatten = layers.Flatten()(conv5)
     dense1 = layers.Dense(1024)(flatten)
     dense2 = layers.Dense(1024)(dense1)
-    predict = layers.Dense(2, activation='softmax')(dense2)
+    predict = layers.Dense(2)(dense2)
     model = models.Model(inputs=input_data, outputs=predict)
 
     model.compile(
-        loss='binary_crossentropy',
+        loss='categorical_crossentropy',
         optimizer=optimizers.RMSprop(lr=1e-4),
         metrics=['acc']
     )
@@ -49,6 +49,12 @@ def train():
     data_gen = ImageDataGenerator(rescale=1. / 255)
     train_data_iterator = data_gen.flow_from_directory(
         os.path.join(DATASET_PATH, "train_image"),
+        target_size=(IMAGE_SIZE, IMAGE_SIZE),
+        batch_size=BATCH_SIZE,
+        class_mode="categorical"
+    )
+    val_data_iterator = data_gen.flow_from_directory(
+        os.path.join(DATASET_PATH, "val_image"),
         target_size=(IMAGE_SIZE, IMAGE_SIZE),
         batch_size=BATCH_SIZE,
         class_mode="categorical"
@@ -65,8 +71,8 @@ def train():
 
     callbacks_list = [
         keras.callbacks.EarlyStopping(
-            monitor='val_loss',
-            patience=50
+            monitor='val_acc',
+            patience=10
         ),
         keras.callbacks.ModelCheckpoint(
             filepath=os.path.join(LOG_PATH, "model.h5"),
@@ -75,26 +81,23 @@ def train():
         ),
         keras.callbacks.TensorBoard(
             log_dir=os.path.join(LOG_PATH, "tensor_board_log"),
-            histogram_freq=1
+            histogram_freq=0
         )
     ]
 
     history = model.fit_generator(
         train_data_iterator,
-        steps_per_epoch=100,
+        steps_per_epoch=1000,
         epochs=NUM_EPOCH,
-        validation_steps=0.1,
+        validation_data=val_data_iterator,
+        validation_steps=50,
         callbacks=callbacks_list
     )
 
     save_history(history, LOG_PATH)
 
     print(model.evaluate_generator(test_data_iterator))
-
-    test_images = test_data_iterator.next()[0]
-    for image in test_images:
-        print(model.predict(image))
-    show_image_tile([test_images])
+    print(model.predict_generator(test_data_iterator))
 
 
 if __name__ == '__main__':
