@@ -14,7 +14,7 @@ DATASET_PATH = "./data/"
 LOG_PATH = os.path.join("log/", datetime.now().strftime('%Y%m%d_%H%M%S'))
 
 IMAGE_SIZE = 96
-BATCH_SIZE = 25
+BATCH_SIZE = 100
 NUM_EPOCH = 100
 
 
@@ -27,13 +27,16 @@ def create_model():
     conv2 = layers.BatchNormalization()(conv2)
     conv2 = layers.MaxPool2D((2, 2))(conv2)
     conv3 = layers.Conv2D(192, kernel_size=(3, 3), activation='relu')(conv2)
+    conv3 = layers.BatchNormalization()(conv3)
     conv4 = layers.Conv2D(192, kernel_size=(3, 3), activation='relu')(conv3)
+    conv4 = layers.BatchNormalization()(conv4)
     conv5 = layers.Conv2D(128, kernel_size=(3, 3), activation='relu')(conv4)
+    conv5 = layers.BatchNormalization()(conv5)
     conv5 = layers.MaxPool2D((2, 2))(conv5)
     flatten = layers.Flatten()(conv5)
     dense1 = layers.Dense(1024)(flatten)
     dense2 = layers.Dense(1024)(dense1)
-    predict = layers.Dense(2)(dense2)
+    predict = layers.Dense(2, activation='softmax')(dense2)
     model = models.Model(inputs=input_data, outputs=predict)
 
     model.compile(
@@ -95,6 +98,8 @@ def train():
     )
 
     save_history(history, LOG_PATH)
+
+    model = models.load_model(os.path.join(LOG_PATH, "model.h5"))
 
     print(model.evaluate_generator(test_data_iterator))
     print(model.predict_generator(test_data_iterator))
