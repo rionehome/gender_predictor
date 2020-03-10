@@ -1,0 +1,3 @@
+[submodule "train/machinelearning_library"]
+	path = train/machinelearning_library
+	url = https://github.com/HiroRittsu/machinelearning_library.git
